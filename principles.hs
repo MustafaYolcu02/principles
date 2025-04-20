@@ -15,9 +15,11 @@ initialBoard =
 boardWidth :: Int
 boardWidth = length (head initialBoard)
 
--- Flat board printer (no indices, no spaces)
+-- Print the board with space between characters
 printBoard :: Board -> IO ()
-printBoard = putStrLn . unlines
+printBoard board = do
+  putStrLn "\nCurrent Board:\n"
+  mapM_ (putStrLn . unwords . map (:[])) board
 
 -- Index helpers
 indexToPos :: Int -> Position
@@ -28,12 +30,12 @@ posToIndex (r, c) = r * boardWidth + c
 
 -- Find a letter's current position
 findLetter :: Board -> Char -> Maybe Position
-findLetter board ch = let
-  flat = concat board
-  idx = elemIndex ch flat
-  in case idx of
-       Just i -> Just (indexToPos i)
-       Nothing -> Nothing
+findLetter board ch =
+  let flat = concat board
+      idx = elemIndex ch flat
+   in case idx of
+        Just i -> Just (indexToPos i)
+        Nothing -> Nothing
 
 -- Update board value
 updateBoard :: Board -> Position -> Char -> Board
@@ -49,6 +51,20 @@ clearCell board pos = updateBoard board pos '-'
 -- Move a piece
 makeMove :: Board -> Char -> Int -> Maybe Board
 makeMove board ch targetIdx = do
+  fromPos@(r1, c1) <- findLetter board ch
+  let (r2, c2) = indexToPos targetIdx
+      validMove = board !! r2 !! c2 == '-'
+      isLetter = ch `elem` ['A', 'B', 'C']
+      moveLeft = c2 < c1
+
+  if isLetter && moveLeft then
+    Nothing
+  else if validMove then do
+    let boardCleared = clearCell board fromPos
+    return $ updateBoard boardCleared (r2, c2) ch
+  else
+    Nothing
+
   sourcePos <- findLetter board ch
   let targetPos = indexToPos targetIdx
       (tr, tc) = targetPos
@@ -60,10 +76,19 @@ makeMove board ch targetIdx = do
     then Just $ updateBoard (clearCell board sourcePos) targetPos ch
     else Nothing
 
+-- Attempt a move and print result
+attemptMove :: Board -> Char -> Int -> IO Board
+attemptMove board ch targetIdx =
+  case makeMove board ch targetIdx of
+    Just newBoard -> return newBoard
+    Nothing -> do
+      putStrLn "Invalid move!"
+      return board
+
 -- Main game loop
 gameLoop :: Board -> Int -> Int -> Bool -> IO ()
 gameLoop board maxMoves moveCount isFirstsTurn
-  | notElem 'Z' (concat board) = do
+  | 'Z' `notElem` concat board = do
       printBoard board
       putStrLn "Z captured! Firsts win!"
   | moveCount >= maxMoves = do
