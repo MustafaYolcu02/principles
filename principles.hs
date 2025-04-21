@@ -108,12 +108,29 @@ isValidMove board (r, c) =
      c >= 0 && c < cols &&    -- Sütun sınır kontrolü
      board !! r !! c == '-'   -- Hücre boş mu?
 
+-- Z'nin A, B ve C harflerinin solunda olup olmadığını kontrol eder
+isZLeftOfABC :: Board -> Bool
+isZLeftOfABC board = do
+  -- A, B, C ve Z harflerinin pozisyonlarını al
+  let aPos = findLetter board 'A'
+      bPos = findLetter board 'B'
+      cPos = findLetter board 'C'
+      zPos = findLetter board 'Z'
+
+  -- Eğer Z'nin pozisyonu ve diğer harflerin pozisyonları bulunabiliyorsa kontrol et
+  case (aPos, bPos, cPos, zPos) of
+    (Just (za, ca), Just (zb, cb), Just (zc, cc), Just (zz, cz)) ->
+      (\(zr, zc) -> zc < ca && zc < cb && zc < cc) (zz, cz)
+
 -- Main game loop
 gameLoop :: Board -> Int -> Int -> Bool -> IO ()
 gameLoop board maxMoves moveCount isFirstsTurn
   | not (canZMove board) = do
       printBoard board
       putStrLn "A&B&C wins."
+  | isZLeftOfABC board = do
+      printBoard board
+      putStrLn "z wins."
   | moveCount >= maxMoves = do
       printBoard board
       putStrLn "DRAW!!!"
