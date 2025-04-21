@@ -85,15 +85,38 @@ attemptMove board ch targetIdx =
       putStrLn "Invalid move!"
       return board
 
+-- Z'nin geçerli hamlesi var mı? (Bool döner)
+canZMove :: Board -> Bool
+canZMove board =
+  case findLetter board 'Z' of
+    Just pos -> not (null (getValidMovesForZ board pos))  -- En az 1 hamle varsa True
+    Nothing -> False  -- Z tahtada yoksa (imkansız, ama yine de güvenlik)
+
+-- Z'nin geçerli tüm hamlelerini (yatay/dikey/çapraz) döner
+getValidMovesForZ :: Board -> Position -> [Position]
+getValidMovesForZ board (r, c) =
+  let directions = [ (r-1, c), (r+1, c), (r, c-1), (r, c+1)  -- Yatay/dikey
+                   , (r-1, c-1), (r-1, c+1), (r+1, c-1), (r+1, c+1) ]  -- Çapraz
+  in filter (isValidMove board) directions
+
+-- Bir hamle geçerli mi? (Tahta sınırları içinde ve boş mu?)
+isValidMove :: Board -> Position -> Bool
+isValidMove board (r, c) =
+  let rows = length board
+      cols = if null board then 0 else length (head board)
+  in r >= 0 && r < rows &&    -- Satır sınır kontrolü
+     c >= 0 && c < cols &&    -- Sütun sınır kontrolü
+     board !! r !! c == '-'   -- Hücre boş mu?
+
 -- Main game loop
 gameLoop :: Board -> Int -> Int -> Bool -> IO ()
 gameLoop board maxMoves moveCount isFirstsTurn
-  | 'Z' `notElem` concat board = do
+  | not (canZMove board) = do
       printBoard board
-      putStrLn "Z captured! Firsts win!"
+      putStrLn "A&B&C wins."
   | moveCount >= maxMoves = do
       printBoard board
-      putStrLn "Maximum number of moves reached."
+      putStrLn "DRAW!!!"
   | otherwise = do
       printBoard board
       if isFirstsTurn
